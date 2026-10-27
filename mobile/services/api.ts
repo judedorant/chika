@@ -1,7 +1,8 @@
 import axios from "axios";
+import { environment } from "./environment";
 
 export const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8000/api/v1",
+  baseURL: environment.apiUrl,
   timeout: 15000,
   headers: { Accept: "application/json" },
 });

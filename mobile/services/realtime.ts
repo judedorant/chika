@@ -6,6 +6,7 @@ import { api } from "./api";
 import { queryClient } from "./query";
 import { useAuth } from "../stores/auth";
 import { useOutbox } from "../stores/outbox";
+import { environment } from "./environment";
 
 export type ChatEvent = {
   conversation_id: number;
@@ -44,15 +45,13 @@ export function useRealtime() {
         refresh();
       }
     });
-    const key = process.env.EXPO_PUBLIC_REVERB_APP_KEY;
+    const key = environment.reverbKey;
     let echo: Echo<"reverb"> | undefined;
     if (key) {
-      const tls = process.env.EXPO_PUBLIC_REVERB_SCHEME !== "http";
-      const port = Number(
-        process.env.EXPO_PUBLIC_REVERB_PORT || (tls ? 443 : 8080),
-      );
+      const tls = environment.reverbScheme === "https";
+      const port = environment.reverbPort;
       const client = new PusherClient(key, {
-        wsHost: process.env.EXPO_PUBLIC_REVERB_HOST || "10.0.2.2",
+        wsHost: environment.reverbHost,
         wsPort: port,
         wssPort: port,
         forceTLS: tls,

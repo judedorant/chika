@@ -15,4 +15,14 @@ mobile/ios/
 *.jks
 *.keystore
 credentials.json
+google-services*.json
+GoogleService-Info.plist
+*service-account*.json
+*firebase-adminsdk*.json
+*.apk
+*.aab
+*.p8
+*.p12
+*.pem
+*.key
 .DS_Store
