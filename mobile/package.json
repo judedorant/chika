@@ -9,14 +9,14 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "export:android": "expo export --platform android"
+    "export:android": "expo export --platform android",
+    "postinstall": "patch-package",
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@react-native-community/netinfo": "11.5.2",
     "@tanstack/react-query": "^5.105.0",
     "axios": "^1.21.0",
-    "eslint": "^9.39.5",
-    "eslint-config-expo": "~55.0.1",
     "expo": "~55.0.32",
     "expo-constants": "~55.0.17",
     "expo-crypto": "~55.0.19",
@@ -38,11 +38,21 @@
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "react-native-web": "^0.21.0",
+    "zod": "4.6.7",
     "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~55.0.1",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "@expo/cli": {
+      "zod": "4.6.7"
+    },
+    "decode-uri-component": "0.5.1"
+  }
 }
