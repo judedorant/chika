@@ -1,0 +1,60 @@
+name: rchat
+x-php: &php
+  image: rchat-php:dev
+  build: ./backend
+  working_dir: /app
+  volumes:
+    - ./backend:/app
+  env_file: ./backend/.env
+  environment:
+    DB_HOST: mysql
+    REDIS_HOST: redis
+    REVERB_HOST: reverb
+    REVERB_PORT: 8080
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: rchat
+      MYSQL_USER: rchat
+      MYSQL_PASSWORD: ${RCHAT_DB_PASSWORD:?Set RCHAT_DB_PASSWORD in the root .env}
+      MYSQL_ROOT_PASSWORD: ${RCHAT_DB_ROOT_PASSWORD:?Set RCHAT_DB_ROOT_PASSWORD in the root .env}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: [CMD, mysqladmin, ping, -h, localhost, --silent]
+      interval: 5s
+      retries: 30
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      retries: 10
+  api:
+    <<: *php
+    # Preserve injected container settings in Laravel's child PHP process.
+    command: php artisan serve --host=0.0.0.0 --port=8000 --no-reload
+    ports:
+      - 127.0.0.1:8000:8000
+  worker:
+    <<: *php
+    command: php artisan queue:work redis --sleep=1 --tries=3 --timeout=90
+    restart: unless-stopped
+  reverb:
+    <<: *php
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - 127.0.0.1:8080:8080
+    restart: unless-stopped
+volumes:
+  mysql-data:
+  redis-data:
