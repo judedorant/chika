@@ -11,6 +11,9 @@ x-php: &php
     REDIS_HOST: redis
     REVERB_HOST: reverb
     REVERB_PORT: 8080
+    # Keep outbound proxy settings; Docker-owned services resolve on this network.
+    NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,::1},api,reverb,mysql,redis
+    no_proxy: ${NO_PROXY:-localhost,127.0.0.1,::1},api,reverb,mysql,redis
   depends_on:
     mysql:
       condition: service_healthy

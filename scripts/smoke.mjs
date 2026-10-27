@@ -15,6 +15,17 @@ for (const url of [base, socketBase]) {
 }
 const key = process.env.REVERB_APP_KEY;
 assert(key, 'Set REVERB_APP_KEY to the local public socket key.');
+assert(/^[A-Za-z0-9_-]+$/.test(key), 'The public Reverb app key must not contain a colon.');
+// Compose reports a running container before Laravel has opened its socket.
+let ready = false;
+for (let attempt = 0; attempt < 30; attempt++) {
+  try {
+    const response = await fetch(`${base}/health`, { signal: AbortSignal.timeout(1000) });
+    if (response.ok) { ready = true; break; }
+  } catch { /* Retry only startup readiness, never message creation. */ }
+  await new Promise(resolve => setTimeout(resolve, 250));
+}
+assert(ready, 'The local API did not become ready.');
 let checks = 0;
 async function request(path, { token, body, method = 'GET', status = 200 } = {}) {
   const headers = { Accept: 'application/json' };
@@ -62,7 +73,7 @@ try {
   const subscribed = waitFor(e => e.event === 'pusher_internal:subscription_succeeded');
   ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { channel, auth: auth.auth } }));
   await subscribed;
-  const { data: conversation } = await request('/conversations', { method: 'POST', token: a.token, body: { type: 'private', participant_ids: [b.user.id] } });
+  const { data: conversation } = await request('/conversations', { method: 'POST', token: a.token, status: 201, body: { type: 'private', participant_ids: [b.user.id] } });
   const event = waitFor(e => e.event === 'chat.changed' && e.data.kind === 'message' && e.data.conversation_id === conversation.id);
   const payload = { body: 'A real queued broadcast', client_message_id: randomUUID() };
   const { data: message } = await request(`/conversations/${conversation.id}/messages`, { method: 'POST', token: a.token, status: 201, body: payload });
@@ -75,6 +86,20 @@ try {
   await request(`/messages/${message.id}/read`, { method: 'POST', token: b.token });
   const history = await request(`/conversations/${conversation.id}/messages`, { token: a.token });
   assert(history.data[0].receipts[0].read_at); checks++;
+  const { data: group } = await request('/conversations', { method: 'POST', token: a.token, status: 201, body: { type: 'group', name: 'Live smoke group', participant_ids: [b.user.id] } });
+  const groupEvent = waitFor(e => e.event === 'chat.changed' && e.data.kind === 'message' && e.data.conversation_id === group.id);
+  const [groupMessage] = await Promise.all([
+    request(`/conversations/${group.id}/messages`, { method: 'POST', token: a.token, status: 201, body: { body: 'Live group message', client_message_id: randomUUID() } }),
+    groupEvent,
+  ]);
+  assert.equal(groupMessage.data.receipts[0].user_id, b.user.id); checks++;
+  await request(`/conversations/${group.id}`, { method: 'PATCH', token: b.token, status: 403, body: { name: 'Denied' } });
+  const removed = waitFor(e => e.event === 'chat.changed' && e.data.kind === 'removed' && e.data.conversation_id === group.id);
+  await Promise.all([
+    request(`/conversations/${group.id}/participants/${b.user.id}`, { method: 'DELETE', token: a.token, status: 204 }),
+    removed,
+  ]);
+  await request(`/conversations/${group.id}/messages`, { token: b.token, status: 403 });
   await request('/me/heartbeat', { method: 'POST', token: b.token, status: 204 });
   const presence = await request(`/users/${b.user.id}/presence`, { token: a.token });
   assert.equal(presence.online, true); checks++;
