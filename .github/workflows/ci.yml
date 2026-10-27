@@ -27,7 +27,10 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist
         working-directory: backend
-      - run: cp .env.example .env && php artisan key:generate
+      - run: |
+          cp .env.example .env
+          php -r '$p=".env"; file_put_contents($p, str_replace("REVERB_APP_SECRET=\n", "REVERB_APP_SECRET=".bin2hex(random_bytes(32))."\n", file_get_contents($p)));'
+          php artisan key:generate
         working-directory: backend
       - run: vendor/bin/pint --test
         working-directory: backend
@@ -56,8 +59,43 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
+      - run: npm test
       - run: npm run typecheck
       - run: npm run lint
       - run: npx expo-doctor
       - run: npm run export:android
-      - run: npm audit --omit=dev
+      - run: npm audit
+  realtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+        working-directory: mobile
+      - name: Configure disposable local stack
+        run: |
+          python3 - <<'PY'
+          import base64, secrets
+          from pathlib import Path
+          password = secrets.token_hex(24)
+          Path('.env').write_text('RCHAT_DB_PASSWORD=' + password + '\nRCHAT_DB_ROOT_PASSWORD=' + secrets.token_hex(24) + '\n')
+          config = Path('backend/.env.example').read_text()
+          config = config.replace('APP_KEY=\n', 'APP_KEY=base64:' + base64.b64encode(secrets.token_bytes(32)).decode() + '\n')
+          config = config.replace('APP_DEBUG=true', 'APP_DEBUG=false')
+          config = config.replace('DB_PASSWORD=\n', 'DB_PASSWORD=' + password + '\n')
+          config = config.replace('REVERB_APP_SECRET=\n', 'REVERB_APP_SECRET=' + secrets.token_hex(32) + '\n')
+          Path('backend/.env').write_text(config)
+          PY
+      - run: docker compose build
+      - run: docker compose run --rm api composer install --no-interaction --prefer-dist
+      - run: docker compose run --rm api php artisan migrate --force
+      - run: docker compose up -d api worker reverb
+      - run: node --env-file=backend/.env scripts/smoke.mjs
+      - if: failure()
+        run: docker compose logs --tail=100 api worker reverb
+      - if: always()
+        run: docker compose down --volumes
