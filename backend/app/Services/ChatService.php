@@ -64,6 +64,9 @@ class ChatService
                     foreach ($ids as $id) {
                         abort_if(BlockedUser::between($user->id, $id), 403, 'This user cannot be contacted.');
                     }
+                } else {
+                    // The idempotency key is sender-scoped, including across groups.
+                    User::whereKey($user->id)->lockForUpdate()->firstOrFail();
                 }
                 $existing = Message::withTrashed()->where('sender_id', $user->id)->where('client_message_id', $data['client_message_id'])->first();
                 if ($existing) {

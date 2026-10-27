@@ -21,8 +21,8 @@ class UserController extends Controller
         $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
 
         return UserResource::collection(User::whereKeyNot($request->user()->id)->where('name', 'like', str_replace(['%', '_'], ['\\%', '\\_'], $data['q']).'%')
-            ->whereDoesntHave('blockedBy', fn ($q) => $q->where('users.id', $request->user()->id))
-            ->whereDoesntHave('blockedUsers', fn ($q) => $q->where('users.id', $request->user()->id))->orderBy('id')->paginate(25));
+            ->whereNotIn('id', BlockedUser::where('blocker_id', $request->user()->id)->select('blocked_id'))
+            ->whereNotIn('id', BlockedUser::where('blocked_id', $request->user()->id)->select('blocker_id'))->orderBy('id')->paginate(25));
     }
 
     public function show(Request $request, User $user)
