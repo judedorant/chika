@@ -1,6 +1,9 @@
 <?php
+
 namespace App\Http\Resources;
+
 use Illuminate\Http\Resources\Json\JsonResource;
+
 class ConversationResource extends JsonResource
 {
     public function toArray($request): array
