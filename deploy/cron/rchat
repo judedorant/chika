@@ -1,0 +1,2 @@
+# Install as /etc/cron.d/rchat, root-owned mode 0644. Run on exactly one host.
+* * * * * rchat cd /srv/rchat/current/backend && /usr/bin/php8.5 artisan schedule:run >> /var/log/rchat/scheduler.log 2>&1
