@@ -19,3 +19,13 @@ docs/      Setup, architecture, API, database, QA
 ```
 
 Start with `docs/setup.md`. Use HTTPS/WSS and production process supervision before deployment. No Android binary or production deployment is implied by source or JavaScript bundle validation.
+
+Phase 9 preparation is documented in:
+
+- [Android builds](ANDROID_BUILD_GUIDE.md)
+- [Backend deployment](BACKEND_DEPLOYMENT_GUIDE.md)
+- [Firebase / FCM setup](FIREBASE_SETUP_GUIDE.md)
+- [Production checklist](PRODUCTION_CHECKLIST.md)
+- [Android QA report](ANDROID_QA_REPORT.md)
+
+Phase 9 remains incomplete until real signed builds, device/FCM verification, and an explicitly approved deployment succeed.

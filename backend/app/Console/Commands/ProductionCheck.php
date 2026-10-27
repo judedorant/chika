@@ -37,7 +37,7 @@ class ProductionCheck extends Command
             'Queue reservation exceeds worker timeout' => (int) config('queue.connections.redis.retry_after') > (int) config('deployment.worker_timeout'),
             'Private uploads outside public root' => $root && $public && ! str_starts_with($root.'/', $public.'/'),
             'Runtime storage writable' => is_writable(storage_path()) && is_writable(storage_path('app/private')) && is_writable(base_path('bootstrap/cache')),
-            'Explicit trusted proxies' => ! collect(config('deployment.trusted_proxies', []))->contains(fn ($proxy) => str_contains($proxy, '*')),
+            'Explicit trusted proxies' => ! collect(config('deployment.trusted_proxies', []))->contains(fn ($proxy) => str_contains($proxy, '*') || str_ends_with($proxy, '/0') || ! filter_var(explode('/', $proxy)[0], FILTER_VALIDATE_IP)),
         ];
         foreach ($checks as $label => $ok) {
             $this->line(($ok ? 'PASS ' : 'FAIL ').$label);

@@ -1,0 +1,41 @@
+# Prepared Maestro flow. Run only against a preview build and disposable staging account.
+# maestro test -e QA_EMAIL=<unique-test-email> -e QA_PASSWORD=<test-password> qa/android/auth-session.yaml
+appId: com.judedorant.rchat
+---
+- launchApp:
+    clearState: true
+- assertVisible: Welcome to RChat
+- tapOn: New here.*
+- tapOn: Name
+- inputText: Android QA
+- tapOn: Email
+- inputText: ${QA_EMAIL}
+- tapOn: Password
+- inputText: ${QA_PASSWORD}
+- tapOn: Confirm password
+- inputText: ${QA_PASSWORD}
+- hideKeyboard
+- tapOn: Create account
+- assertVisible: RChat
+- tapOn: Settings
+- scrollUntilVisible:
+    element: Sign out
+    direction: DOWN
+- tapOn: Sign out
+- assertVisible: Welcome to RChat
+- tapOn: Email
+- inputText: ${QA_EMAIL}
+- tapOn: Password
+- inputText: ${QA_PASSWORD}
+- hideKeyboard
+- tapOn: Sign in
+- assertVisible: RChat
+- stopApp
+- launchApp
+- assertVisible: RChat
+- tapOn: Settings
+- scrollUntilVisible:
+    element: Sign out
+    direction: DOWN
+- tapOn: Sign out
+- assertVisible: Welcome to RChat

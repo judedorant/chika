@@ -57,3 +57,7 @@ The smoke script validates loopback targets and exercises connection establishme
 2. Provision EAS/FCM/signing credentials and verify real push delivery and provider receipt handling across sign-in/sign-out.
 3. Complete load/concurrency, retention, backup/restore, monitoring, and deployment validation. A durable transactional outbox and immediate socket token-revocation enforcement remain documented production gaps in architecture.md.
 4. Inspect hosted GitHub Actions results. Passing local checks do not imply a hosted workflow has completed or passed.
+
+## Phase 9 follow-up
+
+This document records the Phase 8 baseline. See the repository-root `ANDROID_QA_REPORT.md` for the expanded Phase 9 audit, current test results, credential blockers, and native checks that remain unrun.

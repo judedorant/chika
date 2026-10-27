@@ -106,3 +106,7 @@ Compose preserves outbound proxy settings and routes only the named Docker servi
 ## Deployment preparation
 
 Provision MySQL/Redis/private shared storage; deploy backend code with `composer install --no-dev --optimize-autoloader`, inject secrets, set `APP_ENV=production`, `APP_DEBUG=false`, configure HTTPS APP_URL and WSS Reverb settings, then run migrations through the deployment process. Run `php artisan config:cache`, `route:cache`, and `view:cache`. Supervise workers, Reverb, and scheduler; restart workers/Reverb after deployments. Configure explicit allowed browser origins and ingress proxy trust. Use backend-accessible Reverb routing separately from the public mobile socket host if your deployment needs it. See architecture boundaries and the QA checklist before release.
+
+## Phase 9 release preparation
+
+Use the repository-root `ANDROID_BUILD_GUIDE.md`, `BACKEND_DEPLOYMENT_GUIDE.md`, `FIREBASE_SETUP_GUIDE.md`, `PRODUCTION_CHECKLIST.md`, and `ANDROID_QA_REPORT.md` for the current release configuration. Dynamic Expo config reads `EAS_PROJECT_ID` and `GOOGLE_SERVICES_JSON`; release profiles require explicit HTTPS/WSS values. Production templates are prepared under `deploy/` and have not been installed on a production host.

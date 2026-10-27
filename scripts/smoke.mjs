@@ -39,22 +39,29 @@ async function request(path, { token, body, method = 'GET', status = 200 } = {})
 }
 async function account(name) {
   const password = `Smoke-${randomUUID()}-Aa1`;
-  return request('/auth/register', { method: 'POST', status: 201, body: { name, email: `${randomUUID()}@smoke.test`, password, password_confirmation: password, device_name: 'Local smoke test' } });
+  const email = `${randomUUID()}@smoke.test`;
+  const actor = await request('/auth/register', { method: 'POST', status: 201, body: { name, email, password, password_confirmation: password, device_name: 'Local smoke test' } });
+  return { ...actor, login: { email, password, device_name: 'Local smoke test' } };
 }
 const a = await account('Smoke Alice');
 const b = await account('Smoke Bob');
 const outsider = await account('Smoke Outsider');
-const ws = new WebSocket(`${socketBase}/app/${key}?protocol=7&client=js&version=8.6.0&flash=false`, { origin: new URL(base).origin });
-ws.addEventListener('error', () => console.error('Reverb transport error.'));
 const waiting = new Set();
-ws.addEventListener('message', ({ data }) => {
+let ws;
+function connectSocket() {
+  const socket = new WebSocket(`${socketBase}/app/${key}?protocol=7&client=js&version=8.6.0&flash=false`, { origin: new URL(base).origin });
+  socket.addEventListener('error', () => console.error('Reverb transport error.'));
+  socket.addEventListener('message', ({ data }) => {
   const event = JSON.parse(String(data));
   console.log(`Socket event: ${event.event}`);
   if (typeof event.data === 'string') event.data = JSON.parse(event.data);
   if (event.event === 'pusher:error') console.error('Socket error:', event.data.code, event.data.message);
-  if (event.event === 'pusher:ping') ws.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
+  if (event.event === 'pusher:ping') socket.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
   for (const listener of [...waiting]) listener(event);
 });
+  return socket;
+}
+ws = connectSocket();
 function waitFor(predicate) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => { waiting.delete(listener); reject(new Error('Timed out waiting for a real Reverb event.')); }, 15000);
@@ -66,6 +73,9 @@ function waitFor(predicate) {
 }
 try {
   const connected = await waitFor(e => e.event === 'pusher:connection_established');
+  const login = await request('/auth/login', { method: 'POST', body: a.login });
+  await request('/auth/logout', { method: 'POST', token: login.token, status: 204 });
+  await request('/me', { token: login.token, status: 401 });
   const channel = `private-users.${b.user.id}`;
   const auth = await request('/broadcasting/auth', { method: 'POST', token: b.token, body: { channel_name: channel, socket_id: connected.data.socket_id } });
   assert(auth.auth === `${key}:${createHmac('sha256', process.env.REVERB_APP_SECRET).update(`${connected.data.socket_id}:${channel}`).digest('hex')}`, 'API must sign with the configured local socket secret.');
@@ -113,6 +123,20 @@ try {
   const attachment = photo.data.attachments[0].id;
   await request(`/attachments/${attachment}`, { token: b.token });
   await request(`/attachments/${attachment}`, { token: outsider.token, status: 403 });
+  // Simulate a transport interruption while keeping the recipient's auth session.
+  await new Promise(resolve => { ws.once('close', resolve); ws.close(); });
+  const missed = await request(`/conversations/${conversation.id}/messages`, { method: 'POST', token: a.token, status: 201, body: { body: 'Sent during disconnection', client_message_id: randomUUID() } });
+  ws = connectSocket();
+  const reconnected = await waitFor(e => e.event === 'pusher:connection_established');
+  const reconnectAuth = await request('/broadcasting/auth', { method: 'POST', token: b.token, body: { channel_name: channel, socket_id: reconnected.data.socket_id } });
+  const resubscribed = waitFor(e => e.event === 'pusher_internal:subscription_succeeded');
+  ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { channel, auth: reconnectAuth.auth } }));
+  await resubscribed;
+  const synced = await request(`/conversations/${conversation.id}/messages`, { token: b.token });
+  assert(synced.data.some(message => message.id === missed.data.id)); checks++;
+  const afterReconnect = waitFor(e => e.event === 'chat.changed' && e.data.kind === 'message' && e.data.conversation_id === conversation.id && e.data.data.message_id > missed.data.id);
+  const [newMessage, newEvent] = await Promise.all([request(`/conversations/${conversation.id}/messages`, { method: 'POST', token: a.token, status: 201, body: { body: 'After reconnection', client_message_id: randomUUID() } }), afterReconnect]);
+  assert.equal(newEvent.data.data.message_id, newMessage.data.id); checks++;
   await request(`/users/${a.user.id}/block`, { method: 'POST', token: b.token, status: 204 });
   await request(`/conversations/${conversation.id}/messages`, { method: 'POST', token: a.token, status: 403, body: { ...payload, client_message_id: randomUUID() } });
   console.log(`PASS: ${checks} local HTTP/socket checks, including real queued Reverb delivery, Redis presence/typing, receipts, private files, and blocking.`);
