@@ -110,3 +110,5 @@ Provision MySQL/Redis/private shared storage; deploy backend code with `composer
 ## Phase 9 release preparation
 
 Use the repository-root `ANDROID_BUILD_GUIDE.md`, `BACKEND_DEPLOYMENT_GUIDE.md`, `FIREBASE_SETUP_GUIDE.md`, `PRODUCTION_CHECKLIST.md`, and `ANDROID_QA_REPORT.md` for the current release configuration. Dynamic Expo config reads `EAS_PROJECT_ID` and `GOOGLE_SERVICES_JSON`; release profiles require explicit HTTPS/WSS values. Production templates are prepared under `deploy/` and have not been installed on a production host.
+
+Windows Docker Desktop and Android emulator setup: [WINDOWS_DOCKER_SETUP.md](../WINDOWS_DOCKER_SETUP.md).

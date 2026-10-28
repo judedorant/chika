@@ -29,3 +29,5 @@ Phase 9 preparation is documented in:
 - [Android QA report](ANDROID_QA_REPORT.md)
 
 Phase 9 remains incomplete until real signed builds, device/FCM verification, and an explicitly approved deployment succeed.
+
+Windows Docker Desktop and Android emulator setup: [WINDOWS_DOCKER_SETUP.md](WINDOWS_DOCKER_SETUP.md).

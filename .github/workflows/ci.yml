@@ -99,3 +99,14 @@ jobs:
         run: docker compose logs --tail=100 api worker reverb
       - if: always()
         run: docker compose down --volumes
+  windows-setup:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test scripts/tests/prepare-local.test.cjs
+      - name: Check Windows PowerShell setup orchestration (mocked tools)
+        shell: powershell
+        run: .\scripts\tests\setup-windows.tests.ps1
