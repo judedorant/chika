@@ -35,4 +35,6 @@ try { & $setup -SkipMobileInstall } catch { $failed = $_.Exception.Message -like
 if (-not $failed) { throw 'Setup did not propagate the external command failure.' }
 if ($global:RChatMockCalls.Contains('compose run --rm api php artisan migrate --no-interaction')) { throw 'Setup continued after Composer failed.' }
 if ((Get-Location).Path -ne $originalLocation) { throw 'Failure path did not restore the working directory.' }
+# The deliberately failed mock must not leak its exit status to the CI shell.
+$global:LASTEXITCODE = 0
 Write-Host 'PASS: PowerShell syntax, command arguments, failure handling, and working-directory restoration (mocked commands).'
